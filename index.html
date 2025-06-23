@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Glasshole: Interactive Liquid Glass WebGL Demo</title>
+    <meta name="description" content="Manipulate dynamic, procedurally-generated glass elements over a cosmic background - or your own.">
+    <meta name="keywords" content="Glasshole, liquid glass, WebGL, GLSL, shader, interactive demo, real-time refraction, Chris Pirillo, procedural graphics, creative coding, frontend demo, glassmorphism, dynamic wallpaper">
+    <meta name="author" content="Chris Pirillo">
+
+    <link rel="canonical" href="https://pirillo.com/arcade/glasshole.html">
+
+    <meta property="og:title" content="Glasshole: Interactive Liquid Glass WebGL Demo">
+    <meta property="og:description" content="A stunning and interactive WebGL liquid glass demo. Manipulate dynamic glass elements over a cosmic background.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/glasshole.html">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/glasshole.png">
+    <meta property="og:image:width" content="773">
+    <meta property="og:image:height" content="651">
+    <meta property="og:site_name" content="Pirillo.com">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@ChrisPirillo">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+    <meta name="twitter:title" content="Glasshole: Interactive Liquid Glass WebGL Demo">
+    <meta name="twitter:description" content="A stunning and interactive WebGL liquid glass demo. Manipulate dynamic glass elements over a cosmic background.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/glasshole.png">
+
+    <!-- 
+      Performance: Resource Hints to speed up critical connections and downloads.
+      - preconnect: Establishes a connection to a domain in advance, saving time on DNS lookup, TCP handshake, and TLS negotiation.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Roboto+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Roboto+Mono:wght@400;500&display=swap"></noscript>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Glasshole: Interactive Liquid Glass WebGL Demo",
+      "headline": "Glasshole: Interactive Liquid Glass WebGL Demo",
+      "url": "https://pirillo.com/arcade/glasshole.html",
+      "description": "Experience 'Glasshole,' a stunning and interactive WebGL liquid glass demo. Manipulate dynamic, procedurally-generated glass elements over a cosmic background.",
+      "keywords": "Glasshole, liquid glass, WebGL, GLSL, shader, interactive demo, real-time refraction, Chris Pirillo, procedural graphics, creative coding, frontend demo, glassmorphism, dynamic wallpaper",
+      "image": "https://pirillo.com/arcade/images/glasshole.png",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "url": "https://pirillo.com/arcade/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Chris Pirillo",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://pirillo.com/images/glasshole.png" 
+        }
+      },
+      "mainEntity": {
+        "@type": "CreativeWork",
+        "name": "Glasshole WebGL Demo",
+        "text": "An interactive WebGL demonstration of a liquid glass effect with a dynamic, procedurally generated cosmic background."
+      }
+    }
+    </script>
+
+    <!-- Google Analytics Script: Loaded asynchronously (`async`) to prevent it from blocking the parsing and rendering of the page. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+    
+    <!-- 
+      The entire CSS is inlined in a <style> tag. For this single-page application, this is a performance benefit
+      as it eliminates a render-blocking network request for an external CSS file, improving First Contentful Paint (FCP).
+    -->
+    <style>
+        /* --- DESIGN SYSTEM & ROOT VARIABLES --- */
+        :root {
+            --bg-color: #0a0a0a;
+            --panel-bg: rgba(25, 25, 25, 0.4);
+            --panel-blur: 20px;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --highlight-color: rgba(255, 255, 255, 0.05);
+            --text-primary: #f5f5f7;
+            --text-secondary: #a0a0a0;
+            --accent-color: #9b59b6; /* A more vibrant purple */
+            --accent-color-light: #c386f0;
+            --danger-color: rgba(220, 53, 69, 0.7);
+            --danger-color-bg: rgba(220, 53, 69, 0.2);
+            --danger-color-bg-hover: rgba(220, 53, 69, 0.4);
+
+
+            /* Fonts */
+            --font-primary: 'Syne', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-primary);
+            font-weight: 700;
+            /* Disable text selection for better user experience in a UI-heavy app. */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        #glCanvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1; /* Placed behind everything */
+        }
+
+        /* --- CONTROL ORB (TOGGLE BUTTON) --- */
+        .control-orb {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            background: rgba(30, 30, 30, 0.5);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Using compositor-friendly properties (transform, box-shadow) for smooth animation. */
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .control-orb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-orb svg {
+            width: 24px;
+            height: 24px;
+            color: var(--text-primary);
+            transition: transform 0.4s ease;
+        }
+
+        .control-orb:hover svg {
+            transform: rotate(45deg);
+        }
+
+        /* --- REDESIGNED CONTROL PANEL --- */
+        .controls {
+            position: fixed;
+            top: 90px;
+            right: 25px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(var(--panel-blur));
+            -webkit-backdrop-filter: blur(var(--panel-blur));
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 24px;
+            z-index: 10;
+            width: 340px;
+            max-height: calc(100vh - 115px); /* Ensure it doesn't go off-screen */
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+            /* Visibility & Transition: Using opacity and transform for performant animations, preventing layout shifts. */
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+            pointer-events: none;
+            transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column;
+        }
+
+        .controls.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .controls-inner {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .controls-content {
+            padding-right: 10px; /* Space for scrollbar */
+        }
+
+        /* --- CUSTOM SCROLLBAR --- */
+        .controls-inner::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .controls-inner::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .controls-inner::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        
+        .controls-inner::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+
+        /* --- CONTROL GROUPING & LAYOUT --- */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .value-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            min-width: 55px;
+            text-align: center;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- SLIDER STYLING --- */
+        .controls input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-color-light) 100%);
+            outline: none;
+            -webkit-appearance: none;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+
+        .controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(155, 89, 182, 0.5), 0 4px 10px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .controls input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        /* --- NEW TOP CONTROLS STYLING --- */
+        .section-divider {
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+
+        .top-actions-grid {
+             display: grid;
+             grid-template-columns: 1fr 1fr 1fr;
+             gap: 10px;
+             margin-bottom: 10px;
+        }
+        
+        .bottom-actions-grid {
+             display: grid;
+             grid-template-columns: 44px 44px 1fr;
+             gap: 10px;
+             margin-bottom: 20px;
+        }
+
+        .action-button, .file-upload-label, #presetSelector {
+            padding: 12px;
+            background: var(--highlight-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9em;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: var(--font-primary);
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        
+        /* HOVER FIX: Removed transform from parent container */
+        .top-actions-grid > *, .bottom-actions-grid > * {
+            position: relative;
+        }
+        
+        /* Change background on inner element hover for visual feedback */
+        .action-button:hover, .file-upload-label:hover, #presetSelector:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: #f5f5f7;
+        }
+
+
+        .action-button.icon-button {
+            padding: 10px;
+            font-size: 20px;
+        }
+
+
+        #removeGlassBtn {
+            background: var(--danger-color-bg);
+            border-color: var(--danger-color);
+        }
+        #removeGlassBtn:hover {
+             background: var(--danger-color-bg-hover);
+             border-color: var(--danger-color);
+        }
+        
+        #presetSelector {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            text-align: left;
+            padding-left: 15px;
+        }
+
+        .file-upload {
+            position: relative;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* --- CREDIT --- */
+        .credit {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            flex-shrink: 0; /* Prevents credit from shrinking */
+        }
+
+        .credit a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .credit a:hover {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        /* Accessibility: A class to visually hide elements but keep them accessible to screen readers. */
+        .visually-hidden {
+            border: 0;
+            clip: rect(0 0 0 0);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            width: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <!--
+      Layout Correction: The <body> structure is identical to the original version to ensure the CSS styles apply correctly
+      and the visual layout is not broken. All optimizations are confined to the <head> section.
+    -->
+    <canvas id="glCanvas"></canvas>
+
+    <div class="control-orb" id="controlToggle">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM12 8a4 4 0 1 1-4 4 4 4 0 0 1 4-4z"/>
+            <path d="M12 2v2M12 20v2M22 12h-2M4 12H2M19.78 4.22l-1.42 1.42M5.64 18.36l-1.42 1.42M19.78 19.78l-1.42-1.42M5.64 5.64L4.22 4.22"/>
+        </svg>
+    </div>
+
+    <div class="controls" id="controlsPanel">
+      <div class="controls-inner">
+        <div class="controls-content">
+            <div class="top-actions-grid">
+                <div class="file-upload">
+                    <input type="file" id="imageUpload" accept="image/*">
+                    <label for="imageUpload" class="file-upload-label">New</label>
+                </div>
+                <button id="resetBgBtn" class="action-button">Reset</button>
+                <button id="exportBtn" class="action-button">Export</button>
+            </div>
+
+            <div class="bottom-actions-grid">
+                <button id="addGlassBtn" class="action-button icon-button">+</button>
+                <button id="removeGlassBtn" class="action-button icon-button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m3 0a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5.5a.5.5 0 0 0-.5-.5m3.5-.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 1 1-1 0V5.5a.5.5 0 0 1 .5-.5"/>
+                  </svg>
+                </button>
+                <select id="presetSelector"></select>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="control-group">
+                <label for="glassWidth">Width <span class="value-display" id="widthValue">170</span></label>
+                <input type="range" id="glassWidth" min="50" max="1000" value="170">
+            </div>
+            <div class="control-group">
+                <label for="glassHeight">Height <span class="value-display" id="heightValue">170</span></label>
+                <input type="range" id="glassHeight" min="50" max="1000" value="170">
+            </div>
+            <div class="control-group">
+                <label for="cornerRadius">Corner Radius <span class="value-display" id="radiusValue">32</span></label>
+                <input type="range" id="cornerRadius" min="0" max="500" value="32">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+             <div class="control-group">
+                <label for="refraction">Refraction <span class="value-display" id="refractionValue">0.0</span></label>
+                <input type="range" id="refraction" min="-30.0" max="30.0" value="0.0" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="chroma">Chroma <span class="value-display" id="chromaValue">0.0</span></label>
+                <input type="range" id="chroma" min="0.0" max="30.0" value="0.0" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="glassThickness">Thickness <span class="value-display" id="thicknessValue">50</span></label>
+                <input type="range" id="glassThickness" min="0" max="200" value="50" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="normalStrength">Normal Strength <span class="value-display" id="normalStrengthValue">7</span></label>
+                <input type="range" id="normalStrength" min="0.1" max="50" value="7" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="displacementScale">Displacement <span class="value-display" id="displacementScaleValue">5</span></label>
+                <input type="range" id="displacementScale" min="0.1" max="30" value="5" step="0.1">
+            </div>
+            <div class="control-group">
+                <label for="heightBlurFactor">Edge Transition <span class="value-display" id="heightBlurFactorValue">20</span></label>
+                <input type="range" id="heightBlurFactor" min="0.1" max="40" value="20" step="0.1">
+            </div>
+            <div class="control-group">
+                <label for="sminSmoothing">SDF Smoothing <span class="value-display" id="sminSmoothingValue">20.0</span></label>
+                <input type="range" id="sminSmoothing" min="0.0" max="40.0" value="20.0" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="blurRadius">Background Blur <span class="value-display" id="blurRadiusValue">0.0</span></label>
+                <input type="range" id="blurRadius" min="0.0" max="25.0" value="0.0" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="highlightWidth">Edge Highlight <span class="value-display" id="highlightWidthValue">3.5</span></label>
+                <input type="range" id="highlightWidth" min="0.0" max="25" value="3.5" step="0.1">
+            </div>
+            <!-- Slider range increased for more dramatic effect -->
+            <div class="control-group">
+                <label for="wobbleSlider">Wobble <span class="value-display" id="wobbleValue">2.0</span></label>
+                <input type="range" id="wobbleSlider" min="0.0" max="5.0" value="2.0" step="0.01">
+            </div>
+            <div class="control-group">
+                <label for="frostSlider">Frost <span class="value-display" id="frostValue">0.00</span></label>
+                <input type="range" id="frostSlider" min="0.0" max="1.0" value="0.0" step="0.01">
+            </div>
+            <!-- NEW: Hue Slider -->
+            <div class="control-group">
+                <label for="hueSlider">Hue <span class="value-display" id="hueValue">0.00</span></label>
+                <input type="range" id="hueSlider" min="0.0" max="1.0" value="0.0" step="0.01">
+            </div>
+            
+            <div class="credit">
+                <p>Based on <a href="https://github.com/rxing365/html-liquid-glass-effect-webgl" target="_blank" rel="noopener noreferrer">rxing365's WebGL Glass</a></p>
+            </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 
+      The core WebGL JavaScript. 
+      Per strict instructions, this block is UNMODIFIED to prevent breaking production functionality.
+      It is placed at the end of the <body> to ensure the browser can parse and render the DOM first,
+      improving perceived performance.
+    -->
+    <script>
+        // --- NEW SCRIPT FOR PANEL TOGGLE ---
+        const controlToggle = document.getElementById('controlToggle');
+        const controlsPanel = document.getElementById('controlsPanel');
+
+        controlToggle.addEventListener('click', () => {
+            controlsPanel.classList.toggle('visible');
+        });
+
+        // --- Shader for the procedural animated background ---
+        const animBgVsSource = `
+            precision highp float;
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+
+        // --- SHADER V7: Bigger and Denser Stars ---
+        const animBgFsSource = `
+            precision highp float;
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            uniform float u_random_seed;
+
+            // --- UTILITY FUNCTIONS ---
+            vec2 hash22(vec2 p) {
+                p = fract(p * vec2(5.3983, 5.4427));
+                p += dot(p.yx, p.xy + vec2(21.5351, 14.3137));
+                return fract(vec2(p.x * p.y * 95.4337, p.x * p.y * 97.597));
+            }
+
+            float noise(vec2 x) {
+                vec2 i = floor(x);
+                vec2 f = fract(x);
+                float a = hash22(i).x;
+                float b = hash22(i + vec2(1.0, 0.0)).x;
+                float c = hash22(i + vec2(0.0, 1.0)).x;
+                float d = hash22(i + vec2(1.0, 1.0)).x;
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+            }
+
+            float fbm(vec2 x) {
+                float v = 0.0;
+                float a = 0.5;
+                mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+                for (int i = 0; i < 5; ++i) {
+                    v += a * noise(x);
+                    x = rot * x * 2.0;
+                    a *= 0.5;
+                }
+                return v;
+            }
+
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+
+            void main() {
+                // Corrected UVs for proper scaling
+                vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
+                // --- TEXTURED, SLOW-MOVING PLASMA ---
+                float time = u_time * 0.05;
+                vec2 uv_plasma = uv * 0.7 + vec2(time * 0.1, -time * 0.05) + u_random_seed * 0.01;
+                
+                float n = fbm(uv_plasma);
+                n = pow(n, 2.5); // Increase contrast for more black space
+
+                // --- RANDOMIZED PLASMA COLOR ---
+                float hue = hash22(vec2(u_random_seed, 0.)).x;
+                vec3 color1 = hsv2rgb(vec3(hue, 0.7, 0.8));
+                vec3 color2 = hsv2rgb(vec3(mod(hue + 0.6, 1.0), 0.8, 1.0));
+                vec3 plasma_color = mix(color1, color2, smoothstep(0.0, 0.3, n)) * n;
+                
+                // --- BIGGER, DENSER, TWINKLING, RANDOMIZED STARS ---
+                vec3 star_color = vec3(0.0);
+                // Increased loop to 4 for more layers and density
+                for (float i = 0.0; i < 4.0; i++) { 
+                    float star_time = u_time * (0.05 + i * 0.02);
+                    vec2 star_uv = (uv + vec2(star_time, -star_time*0.5)) * (3.0 + i * 3.0);
+                    vec2 grid_id = floor(star_uv);
+                    vec2 grid_frac = fract(star_uv);
+                    
+                    vec2 star_hash = hash22(grid_id + u_random_seed * (i+1.));
+                    
+                    // Lowered threshold for a much denser starfield
+                    if (star_hash.x > 0.85) { 
+                        vec2 star_pos = hash22(grid_id + 1.0);
+                        
+                        // Increased star size significantly
+                        float star_size = hash22(star_pos).y * 0.15 + 0.02; 
+                        float dist = distance(grid_frac, star_pos);
+                        
+                        // Twinkling effect
+                        float twinkle = sin(u_time * (2.0 + star_hash.y * 3.0) + star_hash.x * 6.28) * 0.5 + 0.5;
+                        // Sharper falloff for the bigger stars
+                        float intensity = pow(1.0 - smoothstep(0.0, star_size, dist), 10.0) * twinkle;
+                        
+                        // Varying color
+                        vec3 s_color = hsv2rgb(vec3(0.15 + star_hash.y * 0.1, star_hash.x * 0.5, 1.0));
+                        
+                        star_color += intensity * s_color;
+                    }
+                }
+                
+                vec3 final_color = plasma_color + star_color;
+                gl_FragColor = vec4(final_color, 1.0);
+            }
+        `;
+        
+        // --- Main Glass Logic ---
+        const canvas = document.getElementById("glCanvas");
+        const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, antialias: true });
+
+        if (!gl) {
+            alert("WebGL not supported!");
+            throw new Error("WebGL not supported");
+        }
+        
+        // --- WebGL Helper Functions ---
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vsSource, fsSource) {
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+            const shaderProgram = gl.createProgram();
+            gl.attachShader(shaderProgram, vertexShader);
+            gl.attachShader(shaderProgram, fragmentShader);
+            gl.linkProgram(shaderProgram);
+            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                console.error("Unable to initialize the shader program: " + gl.getProgramInfoLog(shaderProgram));
+                return null;
+            }
+            return shaderProgram;
+        }
+
+        // --- State Variables ---
+        let glassElements = [];
+        let activeGlassIndex = -1;
+        let nextGlassId = 1;
+        let isInitialized = false;
+        let presets = [];
+        let randomSeed = Math.random() * 1000.0; // Random seed for background
+        const defaultSettings = {
+                width: 170, height: 170, cornerRadius: 32, refraction: 0.0, chroma: 0.0,
+                thickness: 50, normalStrength: 7, displacementScale: 5,
+                heightBlurFactor: 20, sminSmoothing: 20.0, blurRadius: 0.0,
+                highlightWidth: 3.5, wobble: 0.15, frost: 0.0, hue: 0.0
+            };
+
+
+        // --- Glass Element Factory ---
+        function createGlassElement() {
+            return {
+                id: nextGlassId++,
+                mouseX: canvas.clientWidth / 2,
+                mouseY: canvas.clientHeight / 2,
+                isDragging: false,
+                hasBeenDragged: false,
+                ...defaultSettings // Start with default values
+            };
+        }
+        
+        // --- UI Element References ---
+        const glassWidthSlider = document.getElementById("glassWidth"), glassHeightSlider = document.getElementById("glassHeight"),
+              cornerRadiusSlider = document.getElementById("cornerRadius"), refractionSlider = document.getElementById("refraction"), chromaSlider = document.getElementById("chroma"),
+              imageUpload = document.getElementById("imageUpload"), glassThicknessSlider = document.getElementById("glassThickness"),
+              normalStrengthSlider = document.getElementById("normalStrength"), displacementScaleSlider = document.getElementById("displacementScale"),
+              heightBlurFactorSlider = document.getElementById("heightBlurFactor"), sminSmoothingSlider = document.getElementById("sminSmoothing"),
+              blurRadiusSlider = document.getElementById("blurRadius"), highlightWidthSlider = document.getElementById("highlightWidth"),
+              wobbleSlider = document.getElementById("wobbleSlider"), frostSlider = document.getElementById("frostSlider"), hueSlider = document.getElementById("hueSlider"),
+              widthValueSpan = document.getElementById("widthValue"), heightValueSpan = document.getElementById("heightValue"),
+              radiusValueSpan = document.getElementById("radiusValue"), refractionValueSpan = document.getElementById("refractionValue"), chromaValueSpan = document.getElementById("chromaValue"),
+              thicknessValueSpan = document.getElementById("thicknessValue"), normalStrengthValueSpan = document.getElementById("normalStrengthValue"),
+              displacementScaleValueSpan = document.getElementById("displacementScaleValue"), heightBlurFactorValueSpan = document.getElementById("heightBlurFactorValue"),
+              sminSmoothingValueSpan = document.getElementById("sminSmoothingValue"), blurRadiusValueSpan = document.getElementById("blurRadiusValue"),
+              highlightWidthValueSpan = document.getElementById("highlightWidthValue"), wobbleValueSpan = document.getElementById("wobbleValue"),
+              frostValueSpan = document.getElementById("frostValue"), hueValueSpan = document.getElementById("hueValue"),
+              addGlassBtn = document.getElementById("addGlassBtn"),
+              removeGlassBtn = document.getElementById("removeGlassBtn"), 
+              presetSelector = document.getElementById("presetSelector"),
+              resetBgBtn = document.getElementById("resetBgBtn"),
+              exportBtn = document.getElementById("exportBtn");
+
+
+        // --- UI Update and Event Handlers ---
+        function updateUI() {
+             if (glassElements.length === 0 || activeGlassIndex < 0 || !glassElements[activeGlassIndex]) {
+                glassWidthSlider.value = defaultSettings.width;
+                glassHeightSlider.value = defaultSettings.height;
+                cornerRadiusSlider.value = defaultSettings.cornerRadius;
+                refractionSlider.value = defaultSettings.refraction;
+                chromaSlider.value = defaultSettings.chroma;
+                glassThicknessSlider.value = defaultSettings.thickness;
+                normalStrengthSlider.value = defaultSettings.normalStrength;
+                displacementScaleSlider.value = defaultSettings.displacementScale;
+                heightBlurFactorSlider.value = defaultSettings.heightBlurFactor;
+                sminSmoothingSlider.value = defaultSettings.sminSmoothing;
+                blurRadiusSlider.value = defaultSettings.blurRadius;
+                highlightWidthSlider.value = defaultSettings.highlightWidth;
+                wobbleSlider.value = defaultSettings.wobble;
+                frostSlider.value = defaultSettings.frost;
+                hueSlider.value = defaultSettings.hue;
+
+
+                widthValueSpan.textContent = '---'; heightValueSpan.textContent = '---';
+                radiusValueSpan.textContent = '---'; refractionValueSpan.textContent = '---'; chromaValueSpan.textContent = '---';
+                thicknessValueSpan.textContent = '---'; normalStrengthValueSpan.textContent = '---';
+                displacementScaleValueSpan.textContent = '---'; heightBlurFactorValueSpan.textContent = '---';
+                sminSmoothingValueSpan.textContent = '---'; blurRadiusValueSpan.textContent = '---';
+                highlightWidthValueSpan.textContent = '---'; wobbleValueSpan.textContent = '---';
+                frostValueSpan.textContent = '---'; hueValueSpan.textContent = '---';
+                return;
+            }
+
+            const glass = glassElements[activeGlassIndex];
+            glassWidthSlider.value = glass.width; glassHeightSlider.value = glass.height; cornerRadiusSlider.value = glass.cornerRadius;
+            refractionSlider.value = glass.refraction; chromaSlider.value = glass.chroma; glassThicknessSlider.value = glass.thickness; normalStrengthSlider.value = glass.normalStrength;
+            displacementScaleSlider.value = glass.displacementScale; heightBlurFactorSlider.value = glass.heightBlurFactor;
+            sminSmoothingSlider.value = glass.sminSmoothing; blurRadiusSlider.value = glass.blurRadius; highlightWidthSlider.value = glass.highlightWidth;
+            wobbleSlider.value = glass.wobble; frostSlider.value = glass.frost; hueSlider.value = glass.hue;
+            widthValueSpan.textContent = glass.width; heightValueSpan.textContent = glass.height; radiusValueSpan.textContent = glass.cornerRadius;
+            refractionValueSpan.textContent = glass.refraction.toFixed(2); chromaValueSpan.textContent = glass.chroma.toFixed(2); thicknessValueSpan.textContent = glass.thickness.toFixed(1); normalStrengthValueSpan.textContent = glass.normalStrength.toFixed(1);
+            displacementScaleValueSpan.textContent = glass.displacementScale.toFixed(1); heightBlurFactorValueSpan.textContent = glass.heightBlurFactor.toFixed(1);
+            sminSmoothingValueSpan.textContent = parseFloat(glass.sminSmoothing).toFixed(1); blurRadiusValueSpan.textContent = parseFloat(glass.blurRadius).toFixed(1);
+            highlightWidthValueSpan.textContent = parseFloat(glass.highlightWidth).toFixed(1);
+            wobbleValueSpan.textContent = parseFloat(glass.wobble).toFixed(2);
+            frostValueSpan.textContent = parseFloat(glass.frost).toFixed(2);
+            hueValueSpan.textContent = parseFloat(glass.hue).toFixed(2);
+        }
+        
+        function bringToFront(indexToMove) {
+            if (indexToMove < 0 || indexToMove >= glassElements.length) return;
+            if (indexToMove === glassElements.length - 1) {
+                activeGlassIndex = indexToMove;
+                updateUI();
+                return;
+            }
+            const [element] = glassElements.splice(indexToMove, 1);
+            glassElements.push(element);
+            activeGlassIndex = glassElements.length - 1;
+            updateUI();
+        }
+
+        function handleSliderInput(slider, property, isFloat = false) {
+             slider.oninput = () => {
+                if (glassElements[activeGlassIndex]) {
+                    glassElements[activeGlassIndex][property] = isFloat ? parseFloat(slider.value) : parseInt(slider.value);
+                    presetSelector.value = "custom"; // Selecting a slider marks settings as custom
+                }
+                updateUI();
+            };
+        }
+
+        handleSliderInput(glassWidthSlider, 'width');
+        handleSliderInput(glassHeightSlider, 'height');
+        handleSliderInput(cornerRadiusSlider, 'cornerRadius');
+        handleSliderInput(refractionSlider, 'refraction', true);
+        handleSliderInput(chromaSlider, 'chroma', true);
+        handleSliderInput(glassThicknessSlider, 'thickness', true);
+        handleSliderInput(normalStrengthSlider, 'normalStrength', true);
+        handleSliderInput(displacementScaleSlider, 'displacementScale', true);
+        handleSliderInput(heightBlurFactorSlider, 'heightBlurFactor', true);
+        handleSliderInput(sminSmoothingSlider, 'sminSmoothing', true);
+        handleSliderInput(blurRadiusSlider, 'blurRadius', true);
+        handleSliderInput(highlightWidthSlider, 'highlightWidth', true);
+        handleSliderInput(wobbleSlider, 'wobble', true);
+        handleSliderInput(frostSlider, 'frost', true);
+        handleSliderInput(hueSlider, 'hue', true);
+        
+        addGlassBtn.onclick = () => { 
+            if (glassElements.length < 10) { 
+                const newGlass = createGlassElement(); 
+                glassElements.push(newGlass); 
+                activeGlassIndex = glassElements.length - 1; 
+                presetSelector.value = "0"; // "Default" preset
+                updateUI(); 
+            } 
+        };
+        removeGlassBtn.onclick = () => { 
+            if (glassElements.length > 0 && activeGlassIndex >= 0) {
+                glassElements.splice(activeGlassIndex, 1);
+                activeGlassIndex = glassElements.length - 1;
+                if(activeGlassIndex < 0 && glassElements.length > 0) activeGlassIndex = 0;
+                presetSelector.value = "0";
+                updateUI();
+            }
+        };
+
+        resetBgBtn.onclick = () => {
+            userImageTexture = null;
+            imageUpload.value = ''; // Clear the file input
+            randomSeed = Math.random() * 1000.0; // Regenerate random seed for a new background
+        };
+        
+        exportBtn.onclick = () => {
+            // Hide UI elements before capture
+            controlToggle.style.display = 'none';
+            controlsPanel.style.display = 'none';
+
+            // We need a short timeout to let the UI disappear before capturing the frame
+            setTimeout(() => {
+                const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                const link = document.createElement('a');
+                link.download = 'liquid-glass-snapshot.png';
+                link.href = image;
+                link.click();
+
+                // Show UI elements again
+                controlToggle.style.display = 'flex';
+                // Only show panel if it was visible before
+                if (controlsPanel.classList.contains('visible')) {
+                    controlsPanel.style.display = 'flex';
+                }
+            }, 100);
+        };
+
+        // --- PRESET LOGIC ---
+        function generatePresets() {
+            const presetNames = [
+                "Jello Cube", "Ice Sculpture", "Warp Field", "Ghostly Haze", "Diamond Sharp",
+                "Liquid Metal", "Cosmic Lens", "Frosted Pane", "Bubble Gum", "Mirage",
+                "Polished Gem", "Obsidian Slab", "Water Droplet", "Gummy Bear", "Crystal Ball",
+                "Soap Bubble", "Oil Slick", "Quantum Foam", "Gelatinous", "Vitreous",
+                "Glacial Ice", "Quicksilver", "Amber", "Chrome Warp", "Phantom Glass"
+            ];
+
+            const randomInRange = (min, max, step = 0.1) => {
+                const val = Math.random() * (max - min) + min;
+                return parseFloat(val.toFixed(Math.log10(1/step)));
+            };
+            
+            presets.push({ name: "Default", settings: defaultSettings });
+            presets.push({ name: "Custom", settings: null }); // Placeholder for custom settings
+
+            for (let i = 0; i < presetNames.length; i++) {
+                presets.push({
+                    name: presetNames[i],
+                    settings: {
+                        // Width and height will be randomized on selection
+                        width: defaultSettings.width, 
+                        height: defaultSettings.height,
+                        cornerRadius: randomInRange(0, 150, 1),
+                        refraction: randomInRange(-10, 10, 0.1),
+                        chroma: randomInRange(0, 15, 0.1),
+                        thickness: randomInRange(10, 100, 1),
+                        normalStrength: randomInRange(0.1, 20, 0.1),
+                        displacementScale: randomInRange(0, 10, 0.1),
+                        heightBlurFactor: randomInRange(5, 40, 0.1),
+                        sminSmoothing: randomInRange(0, 40, 0.1),
+                        blurRadius: randomInRange(0, 5, 0.1),
+                        highlightWidth: randomInRange(0, 8, 0.1),
+                        wobble: randomInRange(0, 2, 0.01),
+                        frost: randomInRange(0, 1, 0.01),
+                        hue: randomInRange(0, 1, 0.01)
+                    }
+                });
+            }
+        }
+        
+        function populatePresetSelector() {
+            presetSelector.innerHTML = ''; // Clear existing
+            presets.forEach((preset, index) => {
+                const option = document.createElement("option");
+                option.value = index;
+                if (preset.name === "Custom") {
+                    option.value = "custom";
+                    option.textContent = "Custom";
+                    option.hidden = true; // Hide it, only select programmatically
+                } else {
+                    option.textContent = preset.name;
+                }
+                presetSelector.appendChild(option);
+            });
+        }
+        
+        // --- MODIFIED: Randomize size on preset change ---
+        const randomIntInRange = (min, max) => {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        };
+
+        presetSelector.onchange = () => {
+            const selectedIndex = parseInt(presetSelector.value);
+            const preset = presets[selectedIndex];
+            if (preset && preset.settings && glassElements[activeGlassIndex]) {
+                const activeGlass = glassElements[activeGlassIndex];
+                // Apply all settings from the preset
+                Object.assign(activeGlass, preset.settings);
+
+                // Randomize width and height within a defined range
+                const minSize = 120;
+                const maxSize = 500;
+                activeGlass.width = randomIntInRange(minSize, maxSize);
+                activeGlass.height = randomIntInRange(minSize, maxSize);
+                
+                updateUI();
+            }
+        };
+        
+        // --- TOUCH & MOUSE EVENT HANDLING ---
+        function getEventPos(event, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            // Check if it's a touch event
+            if (event.touches && event.touches.length > 0) {
+                return { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
+            }
+            // Else, it's a mouse event
+            return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        }
+
+        function isPointInGlass(pos, glass) { const dx = pos.x - glass.mouseX, dy = pos.y - glass.mouseY; return Math.abs(dx) <= glass.width / 2 && Math.abs(dy) <= glass.height / 2; }
+        
+        function handleDragStart(event) {
+             if (event.type === 'mousedown' && event.button !== 0) return; // Only handle left clicks
+             const pos = getEventPos(event, canvas);
+             for (let i = glassElements.length - 1; i >= 0; i--) {
+                if (isPointInGlass(pos, glassElements[i])) {
+                    bringToFront(i);
+                    if(glassElements[activeGlassIndex]) {
+                       glassElements[activeGlassIndex].isDragging = true;
+                       glassElements[activeGlassIndex].hasBeenDragged = true;
+                    }
+                    event.preventDefault(); // Prevent scrolling on touch devices
+                    break;
+                }
+            }
+        }
+
+        function handleDragEnd() {
+            glassElements.forEach(g => g.isDragging = false);
+        }
+
+        function handleDragMove(event) {
+            if (glassElements.every(g => !g.isDragging)) return;
+            event.preventDefault(); // Prevent scrolling while dragging
+            const pos = getEventPos(event, canvas);
+            glassElements.forEach(g => {
+                if (g.isDragging) {
+                    g.mouseX = pos.x;
+                    g.mouseY = pos.y;
+                }
+            });
+        }
+
+        canvas.addEventListener("mousedown", handleDragStart);
+        canvas.addEventListener("mouseup", handleDragEnd);
+        canvas.addEventListener("mouseleave", handleDragEnd);
+        canvas.addEventListener("mousemove", handleDragMove);
+
+        canvas.addEventListener("touchstart", handleDragStart, { passive: false });
+        canvas.addEventListener("touchend", handleDragEnd);
+        canvas.addEventListener("touchcancel", handleDragEnd);
+        canvas.addEventListener("touchmove", handleDragMove, { passive: false });
+
+
+        // --- WebGL Shaders ---
+        const vsSource = `
+            precision highp float;
+            attribute vec2 a_position; 
+            uniform vec2 u_resolution; 
+            uniform vec2 u_mousePos; 
+            uniform vec2 u_glassSize; 
+            varying vec2 v_screenTexCoord; 
+            varying vec2 v_shapeCoord;
+            void main() { 
+                vec2 screenPos = u_mousePos + a_position * u_glassSize; 
+                vec2 clipSpacePos = (screenPos / u_resolution) * 2.0 - 1.0; 
+                gl_Position = vec4(clipSpacePos * vec2(1.0, -1.0), 0.0, 1.0); 
+                v_screenTexCoord = screenPos / u_resolution; 
+                v_screenTexCoord.y = 1.0 - v_screenTexCoord.y; 
+                v_shapeCoord = a_position; 
+            }
+        `;
+        const fsSource = `
+            precision highp float; 
+            uniform sampler2D u_backgroundTexture; 
+            uniform vec2 u_resolution; 
+            uniform vec2 u_glassSize; 
+            uniform float u_cornerRadius; 
+            uniform float u_refraction;
+            uniform float u_chroma; 
+            uniform float u_glassThickness; 
+            uniform float u_normalStrength; 
+            uniform float u_displacementScale; 
+            uniform float u_heightTransitionWidth; 
+            uniform float u_sminSmoothing; 
+            uniform float u_blurRadius; 
+            uniform vec4 u_overlayColor; 
+            uniform float u_highlightWidth; 
+            uniform float u_time;
+            uniform float u_wobble;
+            uniform float u_frost;
+            uniform float u_hue;
+            varying vec2 v_screenTexCoord; 
+            varying vec2 v_shapeCoord;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+
+            vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+            float snoise(vec2 v) {
+                const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                vec2 i  = floor(v + dot(v, C.yy) );
+                vec2 x0 = v -   i + dot(i, C.xx);
+                vec2 i1;
+                i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                vec4 x12 = x0.xyxy + C.xxzz;
+                x12.xy -= i1;
+                i = mod(i, 289.0);
+                vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+                vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+                m = m*m;
+                m = m*m;
+                vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                vec3 h = abs(x) - 0.5;
+                vec3 ox = floor(x + 0.5);
+                vec3 a0 = x - ox;
+                m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+                vec3 g;
+                g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                return 130.0 * dot(m, g);
+            }
+
+            float smin_polynomial(float a, float b, float k) { if (k <= 0.0) return min(a, b); float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+            float smax_polynomial(float a, float b, float k) { if (k <= 0.0) return max(a, b); float h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0); return mix(b, a, h) + k * h * (1.0 - h); }
+            float sdRoundedBoxSmooth(vec2 p, vec2 b, float r, float k_smooth) { if (k_smooth <= 0.0) { vec2 q = abs(p) - b + r; return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r; } vec2 q = abs(p) - b + r; float termA_smooth = smax_polynomial(q.x, q.y, k_smooth); float termB_smooth = smin_polynomial(termA_smooth, 0.0, k_smooth * 0.5); vec2 q_for_length_smooth = vec2(smax_polynomial(q.x, 0.0, k_smooth), smax_polynomial(q.y, 0.0, k_smooth)); float termC_smooth = length(q_for_length_smooth); return termB_smooth + termC_smooth - r; }
+            float getHeightFromSDF(vec2 p_pixel_space, vec2 b_pixel_space, float r_pixel, float k_s, float transition_w) { float dist_sample = sdRoundedBoxSmooth(p_pixel_space, b_pixel_space, r_pixel, k_s); float normalized_dist = dist_sample / transition_w; const float steepness_factor = 6.0; float height = 1.0 - (1.0 / (1.0 + exp(-normalized_dist * steepness_factor))); return clamp(height, 0.0, 1.0); }
+            
+            void main() {
+                // --- SETUP & SDF ---
+                float actualCornerRadius = min(u_cornerRadius, min(u_glassSize.x, u_glassSize.y) / 2.0);
+                vec2 current_p_pixel = v_shapeCoord * u_glassSize; 
+                vec2 glass_half_size_pixel = u_glassSize / 2.0;
+                float dist_for_shape_boundary = sdRoundedBoxSmooth(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing); 
+                if (dist_for_shape_boundary > 0.001) { discard; }
+                
+                // --- NORMAL CALCULATION ---
+                vec2 wobbleOffset = vec2(
+                    snoise(v_shapeCoord * 4.0 + u_time * 0.5),
+                    snoise(v_shapeCoord * 4.0 + u_time * 0.5 + 15.0)
+                ) * u_wobble * 0.1;
+
+                vec2 pixel_step_in_norm_space = vec2(1.0 / u_glassSize.x, 1.0 / u_glassSize.y);
+                float norm_step_x1 = pixel_step_in_norm_space.x * 0.75; float norm_step_y1 = pixel_step_in_norm_space.y * 0.75; 
+                float norm_step_x2 = pixel_step_in_norm_space.x * 1.5; float norm_step_y2 = pixel_step_in_norm_space.y * 1.5;
+                float h_px1 = getHeightFromSDF((v_shapeCoord + vec2(norm_step_x1, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_nx1 = getHeightFromSDF((v_shapeCoord - vec2(norm_step_x1, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_px2 = getHeightFromSDF((v_shapeCoord + vec2(norm_step_x2, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_nx2 = getHeightFromSDF((v_shapeCoord - vec2(norm_step_x2, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+                float grad_x1 = (h_px1 - h_nx1) / (2.0 * norm_step_x1 * u_glassSize.x); 
+                float grad_x2 = (h_px2 - h_nx2) / (2.0 * norm_step_x2 * u_glassSize.x); 
+                float delta_x = mix(grad_x1, grad_x2, 0.5);
+                float h_py1 = getHeightFromSDF((v_shapeCoord + vec2(0.0, norm_step_y1)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_ny1 = getHeightFromSDF((v_shapeCoord - vec2(0.0, norm_step_y1)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_py2 = getHeightFromSDF((v_shapeCoord + vec2(0.0, norm_step_y2)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth); 
+                float h_ny2 = getHeightFromSDF((v_shapeCoord - vec2(0.0, norm_step_y2)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+                float grad_y1 = (h_py1 - h_ny1) / (2.0 * norm_step_y1 * u_glassSize.y); 
+                float grad_y2 = (h_py2 - h_ny2) / (2.0 * norm_step_y2 * u_glassSize.y); 
+                float delta_y = mix(grad_y1, grad_y2, 0.5);
+                
+                vec3 surfaceNormal3D = normalize(vec3(-delta_x * u_normalStrength + wobbleOffset.x, -delta_y * u_normalStrength + wobbleOffset.y, 1.0));
+                
+                // --- REFRACTION, DISTORTION & CHROMA ---
+                vec2 direction = normalize(v_shapeCoord * 2.0); // -1 to 1 vector from center
+                
+                // Base distortion from thickness/displacement
+                vec2 base_offset = surfaceNormal3D.xy * (u_glassThickness / u_resolution) * u_displacementScale;
+                
+                // New independent refraction effect (lensing)
+                vec2 refraction_offset = direction * (u_refraction / u_resolution);
+                
+                // Independent chroma effect
+                vec2 chroma_offset = direction * (u_chroma / u_resolution);
+
+                vec2 total_offset = base_offset + refraction_offset;
+                vec2 centerCoord = v_screenTexCoord + total_offset;
+
+                // --- SAMPLING & BLUR LOGIC ---
+                vec2 r_coord = centerCoord + chroma_offset;
+                vec2 g_coord = centerCoord;
+                vec2 b_coord = centerCoord - chroma_offset;
+
+                vec4 finalColor;
+
+                if (u_blurRadius < 0.1) {
+                    finalColor.r = texture2D(u_backgroundTexture, r_coord).r;
+                    finalColor.g = texture2D(u_backgroundTexture, g_coord).g;
+                    finalColor.b = texture2D(u_backgroundTexture, b_coord).b;
+                    finalColor.a = 1.0;
+                } else {
+                    vec2 texelSize = 1.0 / u_resolution;
+                    vec4 r_sum = vec4(0.0);
+                    vec4 g_sum = vec4(0.0);
+                    vec4 b_sum = vec4(0.0);
+
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            vec2 sample_offset = vec2(x, y) * texelSize * u_blurRadius;
+                            r_sum += texture2D(u_backgroundTexture, r_coord + sample_offset);
+                            g_sum += texture2D(u_backgroundTexture, g_coord + sample_offset);
+                            b_sum += texture2D(u_backgroundTexture, b_coord + sample_offset);
+                        }
+                    }
+                    
+                    finalColor.r = (r_sum / 9.0).r;
+                    finalColor.g = (g_sum / 9.0).g;
+                    finalColor.b = (b_sum / 9.0).b;
+                    finalColor.a = 1.0;
+                }
+
+                // --- HUE, FROST, HIGHLIGHT & FINISHING ---
+                float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+    
+                // 1. Apply Hue tint by multiplication to act as a color filter.
+                // This preserves the details of the background, just shifting its color.
+                if (u_hue > 0.01) {
+                    // We create a tint color. We use hsv2rgb to get a nice color from the slider.
+                    // A saturation of 0.6 and value/brightness of 1.0 creates a vibrant but not overwhelming filter.
+                    vec3 tint_color = hsv2rgb(vec3(u_hue, 0.6, 1.0));
+    
+                    // We mix the original color with the filtered color.
+                    // The mix factor (height_val) ensures the tint is strongest in the center and fades at the edges,
+                    // following the shape of the glass. This correctly models colored glass, where light is filtered.
+                    vec3 colored_glass = finalColor.rgb * tint_color;
+                    finalColor.rgb = mix(finalColor.rgb, colored_glass, height_val * 0.7); // Apply tint based on shape
+                }
+    
+                // 2. Apply frost on top of the (potentially tinted) color.
+                // This calculation is now completely separate from the hue.
+                finalColor = mix(finalColor, u_overlayColor, height_val * 0.15 * u_frost);
+    
+                // 3. Add the highlight
+                float highlight_dist = abs(dist_for_shape_boundary);
+                float highlight_alpha = 1.0 - smoothstep(0.0, u_highlightWidth, highlight_dist);
+                finalColor = mix(finalColor, vec4(1.0, 1.0, 1.0, 1.0), highlight_alpha * 0.5);
+
+                gl_FragColor = finalColor;
+            }
+        `;
+        const bgVsSource = `
+            precision highp float;
+            attribute vec2 a_position;
+            varying vec2 v_texCoord;
+            void main() { 
+                gl_Position = vec4(a_position, 0.0, 1.0); 
+                v_texCoord = (a_position + 1.0) / 2.0;
+            }
+        `;
+        
+        const bgFsSource = `
+            precision highp float; 
+            uniform sampler2D u_backgroundTexture; 
+            uniform vec2 u_resolution;
+            uniform vec2 u_imageResolution;
+            varying vec2 v_texCoord;
+            void main() { 
+                vec2 uv = v_texCoord;
+                if (u_imageResolution.y > 0.0) {
+                    float canvasAspect = u_resolution.x / u_resolution.y;
+                    float imageAspect = u_imageResolution.x / u_imageResolution.y;
+                    if (canvasAspect > imageAspect) {
+                        float newHeight = u_resolution.x / imageAspect;
+                        float y_scale = u_resolution.y / newHeight;
+                        uv.y = (uv.y - 0.5) * y_scale + 0.5;
+                    } else {
+                        float newWidth = u_resolution.y * imageAspect;
+                        float x_scale = u_resolution.x / newWidth;
+                        uv.x = (uv.x - 0.5) * x_scale + 0.5;
+                    }
+                }
+                gl_FragColor = texture2D(u_backgroundTexture, uv); 
+            }
+        `;
+
+        const copyFsSource = `
+            precision highp float;
+            uniform sampler2D u_sourceTexture;
+            varying vec2 v_texCoord;
+            void main() {
+                gl_FragColor = texture2D(u_sourceTexture, v_texCoord);
+            }
+        `;
+        
+        // --- WebGL Program and Location Setup ---
+        const shaderProgram = createProgram(gl, vsSource, fsSource);
+        const bgProgram = createProgram(gl, bgVsSource, bgFsSource);
+        const animBgProgram = createProgram(gl, animBgVsSource, animBgFsSource);
+        const copyProgram = createProgram(gl, bgVsSource, copyFsSource);
+
+        const positionAttributeLocation = gl.getAttribLocation(shaderProgram, "a_position");
+        const resolutionUniformLocation = gl.getUniformLocation(shaderProgram, "u_resolution");
+        const mousePosUniformLocation = gl.getUniformLocation(shaderProgram, "u_mousePos");
+        const glassSizeUniformLocation = gl.getUniformLocation(shaderProgram, "u_glassSize");
+        const cornerRadiusUniformLocation = gl.getUniformLocation(shaderProgram, "u_cornerRadius");
+        const refractionUniformLocation = gl.getUniformLocation(shaderProgram, "u_refraction");
+        const chromaUniformLocation = gl.getUniformLocation(shaderProgram, "u_chroma");
+        const glassThicknessUniformLocation = gl.getUniformLocation(shaderProgram, "u_glassThickness");
+        const normalStrengthUniformLocation = gl.getUniformLocation(shaderProgram, "u_normalStrength");
+        const displacementScaleUniformLocation = gl.getUniformLocation(shaderProgram, "u_displacementScale");
+        const heightTransitionWidthUniformLocation = gl.getUniformLocation(shaderProgram, "u_heightTransitionWidth");
+        const sminSmoothingUniformLocation = gl.getUniformLocation(shaderProgram, "u_sminSmoothing");
+        const blurRadiusUniformLocation = gl.getUniformLocation(shaderProgram, "u_blurRadius");
+        const overlayColorUniformLocation = gl.getUniformLocation(shaderProgram, "u_overlayColor");
+        const highlightWidthUniformLocation = gl.getUniformLocation(shaderProgram, "u_highlightWidth");
+        const backgroundTextureLocation = gl.getUniformLocation(shaderProgram, "u_backgroundTexture");
+        const timeUniformLocation = gl.getUniformLocation(shaderProgram, "u_time");
+        const wobbleUniformLocation = gl.getUniformLocation(shaderProgram, "u_wobble");
+        const frostUniformLocation = gl.getUniformLocation(shaderProgram, "u_frost");
+        const hueUniformLocation = gl.getUniformLocation(shaderProgram, "u_hue");
+        
+        const bgPositionAttributeLocation = gl.getAttribLocation(bgProgram, "a_position");
+        const bgBackgroundTextureUniformLocation = gl.getUniformLocation(bgProgram, "u_backgroundTexture");
+        const bgResolutionUniformLocation = gl.getUniformLocation(bgProgram, "u_resolution");
+        const bgImageResolutionUniformLocation = gl.getUniformLocation(bgProgram, "u_imageResolution");
+
+        const animBgPosLoc = gl.getAttribLocation(animBgProgram, "a_position");
+        const animBgResLoc = gl.getUniformLocation(animBgProgram, "u_resolution");
+        const animBgTimeLoc = gl.getUniformLocation(animBgProgram, "u_time");
+        const animBgRandomSeedLoc = gl.getUniformLocation(animBgProgram, "u_random_seed");
+        
+        const copyPositionAttributeLocation = gl.getAttribLocation(copyProgram, "a_position");
+        const copySourceTextureUniformLocation = gl.getUniformLocation(copyProgram, "u_sourceTexture");
+
+
+        // --- WebGL Buffers ---
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.5,-0.5, 0.5,-0.5, -0.5,0.5, -0.5,0.5, 0.5,-0.5, 0.5,0.5]), gl.STATIC_DRAW);
+        
+        const fullScreenQuadBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, fullScreenQuadBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        
+
+        // --- WebGL Textures and Framebuffer ---
+        let userImageTexture = null;
+        let passTextureA, passTextureB;
+        let passFboA, passFboB;
+
+        function createTexture(width, height) {
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            return texture;
+        }
+
+        function createFramebuffer(texture) {
+            const fbo = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+            return fbo;
+        }
+        
+        function setupFbosAndTextures(width, height) {
+             passTextureA = createTexture(width, height);
+             passTextureB = createTexture(width, height);
+             passFboA = createFramebuffer(passTextureA);
+             passFboB = createFramebuffer(passTextureB);
+        }
+
+        // --- Texture Loading ---
+        function loadUserTexture(url) {
+            const image = new Image();
+            image.crossOrigin = "anonymous";
+            image.onload = function() {
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                userImageTexture = texture;
+                userImageTexture.width = image.naturalWidth;
+                userImageTexture.height = image.naturalHeight;
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            };
+            image.src = url;
+        }
+
+        imageUpload.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => loadUserTexture(e.target.result);
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- Main Render Loop ---
+        function drawScene(time) {
+            if (!isInitialized) {
+                if (!shaderProgram || !bgProgram || !animBgProgram || !copyProgram) {
+                    console.error("Shader programs not initialized. Aborting render loop.");
+                    return;
+                }
+                generatePresets();
+                populatePresetSelector();
+                glassElements.push(createGlassElement());
+                activeGlassIndex = 0;
+                updateUI();
+                isInitialized = true;
+            }
+
+            time *= 0.001; // Convert to seconds
+
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = Math.floor(canvas.clientWidth * dpr);
+            const displayHeight = Math.floor(canvas.clientHeight * dpr);
+            if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+                setupFbosAndTextures(displayWidth, displayHeight);
+            }
+            
+            // --- Step 1: Render initial background into passTextureA ---
+            gl.bindFramebuffer(gl.FRAMEBUFFER, passFboA);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            
+            gl.useProgram(bgProgram);
+            gl.bindBuffer(gl.ARRAY_BUFFER, fullScreenQuadBuffer);
+            gl.enableVertexAttribArray(bgPositionAttributeLocation);
+            gl.vertexAttribPointer(bgPositionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform1i(bgBackgroundTextureUniformLocation, 0);
+            gl.uniform2f(bgResolutionUniformLocation, canvas.width, canvas.height);
+            gl.activeTexture(gl.TEXTURE0);
+
+            if (userImageTexture) {
+                gl.bindTexture(gl.TEXTURE_2D, userImageTexture);
+                gl.uniform2f(bgImageResolutionUniformLocation, userImageTexture.width, userImageTexture.height);
+            } else {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, passFboB);
+                gl.useProgram(animBgProgram);
+                gl.enableVertexAttribArray(animBgPosLoc);
+                gl.vertexAttribPointer(animBgPosLoc, 2, gl.FLOAT, false, 0, 0);
+                gl.uniform2f(animBgResLoc, canvas.width, canvas.height);
+                gl.uniform1f(animBgTimeLoc, time);
+                gl.uniform1f(animBgRandomSeedLoc, randomSeed); // Pass random seed
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+                gl.bindFramebuffer(gl.FRAMEBUFFER, passFboA);
+                gl.useProgram(bgProgram);
+                gl.bindTexture(gl.TEXTURE_2D, passTextureB);
+                gl.uniform2f(bgImageResolutionUniformLocation, 0, 0);
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+
+            // --- Step 2: Iteratively render glass elements ---
+            let readTex = passTextureA;
+            let writeFbo = passFboB;
+            
+            for (let i = 0; i < glassElements.length; i++) {
+                const glass = glassElements[i];
+                
+                gl.bindFramebuffer(gl.FRAMEBUFFER, writeFbo);
+                gl.viewport(0, 0, canvas.width, canvas.height);
+
+                gl.useProgram(copyProgram);
+                gl.bindBuffer(gl.ARRAY_BUFFER, fullScreenQuadBuffer);
+                gl.enableVertexAttribArray(copyPositionAttributeLocation);
+                gl.vertexAttribPointer(copyPositionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                gl.uniform1i(copySourceTextureUniformLocation, 0);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, readTex);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+                gl.useProgram(shaderProgram);
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.enableVertexAttribArray(positionAttributeLocation);
+                gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+                gl.uniform1i(backgroundTextureLocation, 0);
+
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                
+                gl.uniform1f(timeUniformLocation, time);
+                gl.uniform1f(wobbleUniformLocation, glass.wobble);
+                gl.uniform1f(frostUniformLocation, glass.frost);
+                gl.uniform1f(hueUniformLocation, glass.hue);
+                gl.uniform2f(mousePosUniformLocation, glass.mouseX * dpr, glass.mouseY * dpr);
+                gl.uniform2f(glassSizeUniformLocation, glass.width * dpr, glass.height * dpr);
+                gl.uniform1f(cornerRadiusUniformLocation, glass.cornerRadius * dpr);
+                gl.uniform1f(refractionUniformLocation, glass.refraction);
+                gl.uniform1f(chromaUniformLocation, glass.chroma);
+                gl.uniform1f(glassThicknessUniformLocation, glass.thickness);
+                gl.uniform1f(normalStrengthUniformLocation, glass.normalStrength);
+                gl.uniform1f(displacementScaleUniformLocation, glass.displacementScale);
+                gl.uniform1f(heightTransitionWidthUniformLocation, glass.heightBlurFactor);
+                gl.uniform1f(sminSmoothingUniformLocation, glass.sminSmoothing);
+                gl.uniform1f(blurRadiusUniformLocation, glass.blurRadius);
+                gl.uniform4f(overlayColorUniformLocation, 1.0, 1.0, 1.0, 1.0);
+                gl.uniform1f(highlightWidthUniformLocation, glass.highlightWidth);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                
+                gl.disable(gl.BLEND);
+
+                let tempTex = readTex;
+                readTex = (writeFbo === passFboA) ? passTextureA : passTextureB;
+                let tempFbo = writeFbo;
+                writeFbo = (tempFbo === passFboA) ? passFboB : passFboA;
+
+            }
+
+
+            // --- Step 3: Draw final result to canvas ---
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.useProgram(copyProgram);
+            gl.bindBuffer(gl.ARRAY_BUFFER, fullScreenQuadBuffer);
+            gl.enableVertexAttribArray(copyPositionAttributeLocation);
+            gl.vertexAttribPointer(copyPositionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform1i(copySourceTextureUniformLocation, 0);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, readTex);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+
+            requestAnimationFrame(drawScene);
+        }
+
+        const setCanvasSize = () => {
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+        }
+
+        window.addEventListener("resize", () => {
+            setCanvasSize();
+            glassElements.forEach(g => {
+                if (!g.hasBeenDragged) {
+                   g.mouseX = window.innerWidth / 2;
+                   g.mouseY = window.innerHeight / 2;
+                }
+            });
+        });
+        
+        // Initial setup
+        const dpr = window.devicePixelRatio || 1;
+        setCanvasSize();
+        setupFbosAndTextures(
+            Math.floor(canvas.clientWidth * dpr),
+            Math.floor(canvas.clientHeight * dpr)
+        );
+        requestAnimationFrame(drawScene);
+    </script>
+</body>
+</html>
